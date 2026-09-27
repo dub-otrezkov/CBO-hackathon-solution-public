@@ -1,0 +1,103 @@
+{
+ "source": "survey of train recordings: GNSS master speed < 0.2 m/s for >= 5 s, clusters of route s within 25 m, std < 5.0 m, stopped at by >= 30% of trips",
+ "route_lengths_m": {
+  "route_east_west.json": 5629.5,
+  "route_west_east.json": 5416.8
+ },
+ "routes": {
+  "route_east_west.json": [
+   {
+    "s": 276.36,
+    "std": 3.8,
+    "share": 0.36
+   },
+   {
+    "s": 962.82,
+    "std": 1.11,
+    "share": 0.32
+   },
+   {
+    "s": 2999.04,
+    "std": 2.53,
+    "share": 1.0
+   },
+   {
+    "s": 3220.26,
+    "std": 1.24,
+    "share": 0.36
+   },
+   {
+    "s": 3432.14,
+    "std": 2.48,
+    "share": 0.77
+   },
+   {
+    "s": 3918.94,
+    "std": 1.99,
+    "share": 0.45
+   },
+   {
+    "s": 4098.29,
+    "std": 0.57,
+    "share": 0.68
+   },
+   {
+    "s": 4319.29,
+    "std": 0.66,
+    "share": 0.36
+   },
+   {
+    "s": 4575.01,
+    "std": 0.33,
+    "share": 0.68
+   },
+   {
+    "s": 4995.29,
+    "std": 0.14,
+    "share": 0.68
+   },
+   {
+    "s": 5215.72,
+    "std": 0.29,
+    "share": 0.77
+   }
+  ],
+  "route_west_east.json": [
+   {
+    "s": 448.37,
+    "std": 0.21,
+    "share": 0.7
+   },
+   {
+    "s": 861.27,
+    "std": 3.81,
+    "share": 0.74
+   },
+   {
+    "s": 1452.9,
+    "std": 1.1,
+    "share": 0.74
+   },
+   {
+    "s": 2014.96,
+    "std": 2.62,
+    "share": 0.91
+   },
+   {
+    "s": 2445.84,
+    "std": 3.77,
+    "share": 0.96
+   },
+   {
+    "s": 4475.93,
+    "std": 0.49,
+    "share": 0.35
+   },
+   {
+    "s": 4860.71,
+    "std": 0.46,
+    "share": 0.43
+   }
+  ]
+ }
+}

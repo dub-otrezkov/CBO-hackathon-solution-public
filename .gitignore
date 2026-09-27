@@ -1,0 +1,7 @@
+build/
+install/
+log/
+__pycache__/
+*.pyc
+viz_ref/
+.DS_Store

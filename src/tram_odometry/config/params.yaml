@@ -1,0 +1,17 @@
+tram_odometry:
+  ros__parameters:
+    # GNSS messages within this many seconds of the first GNSS message (header stamps) are used for the initial
+    # alignment only; 0 disables GNSS.
+    gnss_init_s: 5.0
+    # Route maps directory; empty: the maps installed with the package.
+    maps_dir: ""
+    frame_id: map
+    child_frame_id: base_link
+    velocity_frame_id: base_link
+    qos_depth: 100
+    # Rate of /diagnostics (Hz); 0 disables, capped at 10. Does not change /result/*.
+    diagnostics_hz: 2.0
+    # Keys under "estimator" override the estimator defaults.
+    estimator:
+      wheel_scale: 0.2777777777777778   # bogie value in km/h -> m/s
+      gnss_antenna: master

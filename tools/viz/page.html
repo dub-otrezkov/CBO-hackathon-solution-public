@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js" charset="utf-8"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11, 11, 11, 0.10);
+  --c-ours: #2a78d6; --c-front: #eb6834; --c-rear: #1baf7a; --c-cross: #eda100; --c-stop: #e87ba4;
+  --c-plat: #52514e; --c-fp: #008300; --c-now: #e34948; --c-ref: #52514e; --c-route: #c3c2b7;
+  --c-slip: rgba(236, 131, 90, 0.24); --c-slipm: #ec835a; --c-gate: rgba(11, 11, 11, 0.05);
+  --c-wo: #eda100; --c-mo: #e87ba4; --c-band: rgba(42, 120, 214, 0.16);
+  --seq: #86b6ef, #5598e7, #2a78d6, #1c5cab, #104281, #0d366b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+    --c-ours: #3987e5; --c-front: #d95926; --c-rear: #199e70; --c-cross: #c98500; --c-stop: #d55181;
+    --c-plat: #c3c2b7; --c-fp: #008300; --c-now: #e66767; --c-ref: #c3c2b7; --c-route: #5a5955;
+    --c-slip: rgba(236, 131, 90, 0.30); --c-slipm: #ec835a; --c-gate: rgba(255, 255, 255, 0.07);
+    --c-wo: #c98500; --c-mo: #d55181; --c-band: rgba(57, 135, 229, 0.22);
+    --seq: #184f95, #256abf, #3987e5, #6da7ec, #9ec5f4, #cde2fb;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+  --c-ours: #3987e5; --c-front: #d95926; --c-rear: #199e70; --c-cross: #c98500; --c-stop: #d55181;
+  --c-plat: #c3c2b7; --c-fp: #008300; --c-now: #e66767; --c-ref: #c3c2b7; --c-route: #5a5955;
+  --c-slip: rgba(236, 131, 90, 0.30); --c-slipm: #ec835a; --c-gate: rgba(255, 255, 255, 0.07);
+  --c-wo: #c98500; --c-mo: #d55181; --c-band: rgba(57, 135, 229, 0.22);
+  --seq: #184f95, #256abf, #3987e5, #6da7ec, #9ec5f4, #cde2fb;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 1720px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 20px; line-height: 1.25; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.sub { color: var(--ink-2); margin: 0 0 10px; }
+.note { border-left: 3px solid var(--c-ours); padding: 6px 10px; margin: 8px 0; background: var(--surface); max-width: 118ch; }
+.intro { color: var(--ink-2); max-width: 118ch; margin: 6px 0; }
+.intro b { color: var(--ink); font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.tile .k { color: var(--muted); font-size: 12px; }
+.tile .v { font-size: 18px; font-weight: 600; }
+.tile .u { color: var(--ink-2); font-size: 12px; font-weight: 400; }
+.bar { position: sticky; top: 0; z-index: 10; background: var(--page); padding: 8px 0;
+  border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.bar label { color: var(--ink-2); font-size: 13px; }
+.bar input[type=range] { flex: 1 1 360px; min-width: 160px; accent-color: var(--c-now); }
+button, select { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+.readout { flex: 1 1 100%; font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; }
+.readout b { color: var(--ink); font-weight: 600; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+.rcol { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; min-width: 0; }
+.tiles.src { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); margin: 8px 0; }
+.tile .sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+@media (min-width: 1100px) {
+  .grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .mapcol { position: sticky; top: calc(var(--bar-h, 64px) + 8px); align-self: start; }
+}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-width: 0; }
+.hint { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13px; color: var(--ink-2); margin: 4px 0; }
+.plotwrap { position: relative; }
+.vline { position: absolute; width: 0; border-left: 2px solid var(--c-now); pointer-events: none; display: none; z-index: 3; }
+#mapo { height: 220px; }
+#map { height: 420px; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 900px) { .two { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+#along { height: 380px; }
+#win, #rho { height: 320px; }
+.fixtitle { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink); }
+details { margin: 12px 0; }
+summary { cursor: pointer; font-weight: 600; }
+.tbl { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; margin-top: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: 600; }
+td:first-child, th:first-child, td.l { text-align: left; }
+tr[data-i] { cursor: pointer; }
+tr.sel td { background: var(--c-gate); }
+.defs { color: var(--ink-2); font-size: 13px; max-width: 120ch; }
+.defs li { margin: 3px 0; }
+.err { color: var(--c-now); }
+.legend { display: flex; flex-wrap: wrap; gap: 2px 4px; margin: 4px 0; }
+.legend .li { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2);
+  background: none; border: 0; padding: 2px 6px; border-radius: 4px; }
+.legend .li[aria-pressed="false"] { opacity: 0.4; }
+.legend .li:hover { background: var(--c-gate); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="h1">Резервная одометрия трамвая: разбор записи</h1>
+  <p class="sub" id="sub"></p>
+  <div class="note" id="why" hidden></div>
+  <p class="intro">
+    <b>Что делает алгоритм.</b> Скорость и путь считаются только по скоростям двух тележек
+    (передней и задней; в записи км/ч, здесь м/с = км/ч ÷ 3.6) и позиции контроллера машиниста.
+    Фильтр Калмана оценивает скорость <b>v</b> и пройденный путь <b>s</b> вдоль известного маршрута;
+    точка на карте — точка маршрута на расстоянии s. GNSS используется только первые
+    <span id="gw">5</span> с, чтобы найти стартовую точку <b>s0</b>. Дальше накопленную ошибку пути
+    убирают <b>привязки</b>: «отпечаток» — сравнение профиля r = (v<sub>пер</sub> − v<sub>зад</sub>)/v
+    за последние 200 м с картой (проверка каждые 10 м) — и стоянки у известных платформ.
+    Эталон GNSS на графиках нужен только для оценки ошибки: после первых секунд алгоритм его не видит.
+    Раздел 2 показывает, где был бы трамвай по каждому источнику в отдельности (колёса, модель тяги, доплер GNSS)
+    и с каким весом фильтр принимает каждое измерение.
+  </p>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="bar" id="bar">
+    <button id="play" type="button" aria-label="Воспроизвести">▶</button>
+    <select id="speed" aria-label="Скорость воспроизведения">
+      <option value="10">×10</option><option value="30" selected>×30</option><option value="100">×100</option>
+    </select>
+    <label for="slider">Время</label>
+    <input id="slider" type="range" min="0" max="1" step="0.1" value="0">
+    <button id="theme" type="button">тема: авто</button>
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <div class="grid">
+    <section class="card mapcol">
+      <h2>1. Карта</h2>
+      <div class="plotwrap"><div id="mapo"></div></div>
+      <div class="ctl">
+        <label><input type="checkbox" id="follow" checked> крупно вокруг текущей точки</label>
+        <select id="zoomr" aria-label="Размер окна">
+          <option value="60">±60 м</option><option value="250" selected>±250 м</option><option value="1000">±1 км</option>
+        </select>
+      </div>
+      <div class="plotwrap"><div id="map"></div></div>
+      <div class="legend" id="maplegend"></div>
+      <p class="hint">Сверху — вся поездка, снизу — крупно (рамка на обзоре). Равный масштаб осей, координаты — сетка судей. Щелчок по треку или по привязке переносит время; элементы легенды включаются щелчком. «Только колёса / модель / доплер» — точки маршрута, как наш выход, поэтому их линии лежат на линии маршрута; различие — где каждый источник в момент t (цветные маркеры). Сырые фиксы GNSS — положение антенны (<span id="antoff"></span> м позади base_link).</p>
+    </section>
+    <div class="rcol">
+    <section class="card" id="fusecard">
+      <h2>2. Сведение источников: где был бы каждый источник сам по себе и чему верит фильтр</h2>
+      <p class="hint" id="fusehint"></p>
+      <div class="tiles src" id="srctiles"></div>
+      <div class="ctl"><label for="fuser">шкала 2а:</label>
+        <select id="fuser">
+          <option value="auto" selected>по колёсам, доплеру и фильтру</option><option value="10">±10 м</option>
+          <option value="100">±100 м</option><option value="1000">±1 км</option><option value="full">вся</option>
+        </select>
+      </div>
+      <div class="plotwrap"><div id="fuse"></div><div class="vline" id="fline"></div></div>
+    </section>
+    <section class="card">
+      <h2>3–7. По времени</h2>
+      <p class="hint">Все графики на одной оси времени (общей с разделом 2). Наведение двигает метку на карте, щелчок по привязке открывает её разбор (раздел 8). Масштаб — выделением мышью, двойной щелчок — сброс.</p>
+      <div class="ctl"><label><input type="checkbox" id="errfull"> ошибка: вся шкала (по умолчанию шкала по 99% значений, редкие большие ошибки выходят за край)</label></div>
+      <div class="plotwrap"><div id="time"></div><div class="vline" id="tline"></div></div>
+    </section>
+    </div>
+  </div>
+
+  <section class="card" style="margin-top:12px">
+    <h2>8. Как привязка по отпечатку находит место</h2>
+    <p class="hint" id="alonghint"></p>
+    <div class="ctl">
+      <label><input type="checkbox" id="smooth"> сгладить кривые для глаза (скользящее среднее 5 м; матчер сравнивает несглаженные ячейки 0.5 м)</label>
+      <label><input type="checkbox" id="alongfollow" checked> показывать окно выбранной привязки</label>
+    </div>
+    <div class="plotwrap"><div id="along"></div><div class="vline" id="aline"></div></div>
+    <div class="ctl" style="margin-top:8px">
+      <button id="prevfix" type="button">◀ предыдущая</button>
+      <button id="nextfix" type="button">следующая ▶</button>
+      <span class="fixtitle" id="fixtitle"></span>
+    </div>
+    <div class="two">
+      <div id="win"></div>
+      <div id="rho"></div>
+    </div>
+    <p class="hint">Слева: окно записи (последние ~200 м пути) до сдвига и после сдвига на найденное Δ, поверх карты; сначала показан участок 40 м с самым выразительным профилем карты, двойной щелчок — всё окно; обе кривые нормированы (среднее 0, СКО 1) — так их сравнивает корреляция Пирсона. Справа: корреляция ρ(Δ). Принимается лучший пик внутри ворот, если ρ не ниже порога и пик в PR раз выше лучшего пика дальше <span id="exclm">±5</span> м от него. Фильтр сдвигает s не на всё Δ, а на долю K = P/(P + σ²), σ = 0.4 м.</p>
+  </section>
+
+  <details>
+    <summary>Таблица привязок</summary>
+    <div class="tbl"><table id="fixtable"></table></div>
+  </details>
+  <details>
+    <summary>Определения и что не показано</summary>
+    <ul class="defs" id="defs"></ul>
+  </details>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+(() => {
+'use strict';
+const S = D.series, IN = D.inputs, TR = D.trust, F = D.fixes, EP = D.episodes, A = D.along, ST = D.stats, E = D.err;
+const SR = D.src, SE = SR ? SR.err : null;   // single sources (panel 2); SE: their along errors at reference epochs
+const $ = (id) => document.getElementById(id);
+const MINUS = '−';
+const num = (v, d = 2) => (v == null || !isFinite(v)) ? '—' : (v < 0 ? MINUS : '') + Math.abs(v).toFixed(d);
+const sgn = (v, d = 2) => (v == null || !isFinite(v)) ? '—' : (v < 0 ? MINUS : '+') + Math.abs(v).toFixed(d);
+const tok = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let C = {};
+function readColors() {
+  C = {};
+  for (const n of ['page', 'surface', 'ink', 'ink-2', 'muted', 'grid', 'axis', 'c-ours', 'c-front', 'c-rear', 'c-cross',
+    'c-stop', 'c-plat', 'c-fp', 'c-now', 'c-ref', 'c-route', 'c-slip', 'c-slipm', 'c-gate', 'c-wo', 'c-mo', 'c-band']) C[n.replace(/^c-/, '').replace('-2', '2')] = tok('--' + n);
+  C.seq = tok('--seq').split(',').map((s) => s.trim());
+}
+
+// ---------------------------------------------------------------- helpers
+function bs(a, t) {            // last index with a[i] <= t, -1 if none (a sorted)
+  let lo = 0, hi = a.length - 1;
+  if (!a.length || t < a[0]) return -1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (a[m] <= t) lo = m; else hi = m - 1; }
+  return lo;
+}
+function interp(ts, vs, t, maxGap = 2.0) {
+  const i = bs(ts, t);
+  if (i < 0) return null;
+  if (i >= ts.length - 1) return (t - ts[i] <= 0.5) ? vs[i] : null;
+  const a = vs[i], b = vs[i + 1], dt = ts[i + 1] - ts[i];
+  if (a == null) return null;
+  if (b == null || dt > maxGap) return (t - ts[i] <= 0.5) ? a : null;
+  return a + (dt > 0 ? (t - ts[i]) / dt : 0) * (b - a);
+}
+function stepAt(ts, vs, t) { const i = bs(ts, t); return i < 0 ? null : vs[i]; }
+function quantile(arr, q) {
+  const a = arr.filter((v) => v != null && isFinite(v)).sort((x, y) => x - y);
+  return a.length ? a[Math.min(a.length - 1, Math.max(0, Math.floor(q * (a.length - 1))))] : null;
+}
+function zscore(a) {
+  const v = a.filter((x) => x != null && isFinite(x));
+  const m = v.reduce((s, x) => s + x, 0) / Math.max(1, v.length);
+  const sd = Math.sqrt(v.reduce((s, x) => s + (x - m) * (x - m), 0) / Math.max(1, v.length)) || 1;
+  return a.map((x) => (x == null || !isFinite(x)) ? null : (x - m) / sd);
+}
+function movavg(xs, ys, half) {   // mean of ys over |x - x_i| <= half (xs sorted), nulls skipped; O(n)
+  const out = new Array(ys.length).fill(null);
+  let lo = 0, hi = 0, sum = 0, n = 0;
+  for (let i = 0; i < xs.length; i++) {
+    while (hi < xs.length && xs[hi] <= xs[i] + half) { if (ys[hi] != null) { sum += ys[hi]; n++; } hi++; }
+    while (xs[lo] < xs[i] - half) { if (ys[lo] != null) { sum -= ys[lo]; n--; } lo++; }
+    out[i] = (ys[i] == null || n === 0) ? null : sum / n;
+  }
+  return out;
+}
+const utc0ms = Number(BigInt(D.t0_ns) / 1000000n);
+const utc = (t) => new Date(utc0ms + t * 1000).toISOString().substring(11, 19);
+const mmss = (s) => { const m = Math.floor(s / 60), r = Math.round(s - 60 * m); return m + ' мин ' + (r < 10 ? '0' : '') + r + ' с'; };
+const ttl = (text, size = 12) => ({ text, font: { color: C.ink2, size }, standoff: 6 });
+function axis(extra) {
+  return Object.assign({ gridcolor: C.grid, linecolor: C.axis, zerolinecolor: C.axis, showline: true,
+    ticks: 'outside', tickcolor: C.axis, ticklen: 4, tickfont: { color: C.muted, size: 11 } }, extra || {});
+}
+function baseLayout(extra) {
+  return Object.assign({ paper_bgcolor: C.surface, plot_bgcolor: C.surface,
+    font: { family: 'system-ui, -apple-system, "Segoe UI", sans-serif', color: C.ink, size: 12 },
+    hoverlabel: { bgcolor: C.surface, bordercolor: C.axis, font: { color: C.ink, size: 12 } },
+    margin: { l: 64, r: 16, t: 12, b: 48 } }, extra || {});
+}
+const legendBottom = () => ({ orientation: 'h', x: 0, xanchor: 'left', yref: 'container', y: 0, yanchor: 'bottom', font: { size: 11, color: C.ink2 }, bgcolor: 'rgba(0,0,0,0)' });
+const CFG = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['select2d', 'lasso2d', 'toggleSpikelines', 'autoScale2d'] };
+const hasRef = D.have_ref && E.t.length > 0;
+const eAbs = E.al.map((a, i) => (a == null || E.cr[i] == null || !E.rtk[i]) ? null : Math.hypot(a, E.cr[i]));
+const only = (arr, want) => arr.map((v, i) => (!!E.rtk[i] === want) ? v : null);
+const nonRtk = E.rtk.some((k) => !k);
+const fpIdx = F.map((f, i) => (f.src === 0 && f.job) ? i : -1).filter((i) => i >= 0);
+const Tend = S.t[S.t.length - 1];
+const fixName = (f) => f.src === 0 ? 'отпечаток' : f.src === 1 ? 'стоянка у платформы' : 'привязка';
+let T = 0, selFix = fpIdx.length ? fpIdx[0] : -1;
+
+// ---------------------------------------------------------------- header, tiles
+function header() {
+  $('h1').textContent = 'Резервная одометрия трамвая: запись ' + D.bag;
+  const names = { 'route_east_west.json': 'восток → запад', 'route_west_east.json': 'запад → восток' };
+  const route = D.path_final ? (names[D.path_final] || D.path_final) : 'не определён';
+  $('sub').textContent = 'Начало: ' + D.utc0 + ' · маршрут: ' + route + ' · публикуемая точка — base_link, '
+    + num(D.along_offset_m, 3) + ' м впереди антенны master вдоль пути';
+  $('gw').textContent = D.gnss_init_s;
+  if (D.note) { $('why').hidden = false; $('why').textContent = D.note; }
+  const t = [
+    ['Длительность', mmss(ST.duration_s), ''],
+    ['Путь', ST.distance_m != null ? num(ST.distance_m / 1000, 2) : '—', 'км'],
+    ['Ошибка XY, СКО', num(ST.xy_rmse_m, 2), 'м'],
+    ['Вдоль пути, СКО', num(ST.along_rmse_m, 2), 'м'],
+    ['Поперёк, СКО', num(ST.cross_rmse_m, 2), 'м'],
+    ['Макс. |ошибка| XY', num(ST.max_abs_m, 1), 'м'],
+    ['Ошибка в конце', num(ST.final_xy_m, 2), 'м'],
+    ['Скорость, СКО', num(ST.v_rmse_mps, 3), 'м/с'],
+    ['Привязки: отпечаток / стоянка', ST.fp_fixes + ' / ' + ST.stop_fixes, ''],
+    ['Эпизоды проскальзывания', String(ST.slip_episodes), ST.slip_episodes ? '(всего ' + num(ST.slip_s, 1) + ' с)' : ''],
+  ];
+  $('tiles').innerHTML = t.map(([k, v, u]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v} <span class="u">${u}</span></div></div>`).join('')
+    + (hasRef ? '' : '<div class="tile"><div class="k">Эталон GNSS</div><div class="v err">нет</div></div>');
+}
+
+// ---------------------------------------------------------------- time figure (panels 2-6)
+const ROWS = [
+  { title: '3. Скорость: колёса, наша оценка и эталон GNSS', h: 230, y: 'скорость, м/с (колёса: км/ч ÷ 3.6)', legend: true },
+  { title: '4. Позиция контроллера машиниста (+ тяга, − торможение)', h: 100, y: 'позиция (−15…+15)' },
+  { title: '5. Доверие колёсам: вес измерения в фильтре (0 — не используется)', h: 120, y: 'вес (0…1)', legend: true },
+  { title: '6. Ошибка относительно эталона GNSS (base_link)', h: 200, y: 'ошибка, м', legend: true, gap: 66 },
+  { title: '6а. Поправка пути s в момент привязки', h: 120, y: 'сдвиг s, м', legend: true },
+  { title: '7. Масштаб колёс w (оценивается по привязкам)', h: 100, y: 'w (безразм.)' },
+  { title: '7а. Неопределённость пути по самому фильтру √P_ss', h: 110, y: '√P_ss, м' },
+];
+const GAP = 48, MT = 4, MB = 46;
+const gapOf = (r) => r.gap || GAP;
+const ax = (i) => (i === 0 ? '' : String(i + 1));
+function stackGeom(rows) {    // stacked rows sharing one time axis: total height, row domains (paper units)
+  const plotH = rows.reduce((s, r) => s + r.h + gapOf(r), 0);
+  const dom = (i) => {        // [bottom, top] of the row, top of its header band
+    let top = 0;
+    for (let k = 0; k < i; k++) top += rows[k].h + gapOf(rows[k]);
+    top += gapOf(rows[i]);
+    return [1 - (top + rows[i].h) / plotH, 1 - top / plotH, 1 - (top - gapOf(rows[i])) / plotH];
+  };
+  return { rows, plotH, H: plotH + MT + MB, dom };
+}
+function stackAdd(g, tr) {
+  return (row, o) => { o.xaxis = 'x' + ax(row); o.yaxis = 'y' + ax(row); if (g.rows[row].legend) o.legend = row === 0 ? 'legend' : 'legend' + (row + 1); else o.showlegend = false; tr.push(o); };
+}
+function stackLayout(g) {
+  const L = baseLayout({ height: g.H, margin: { l: 64, r: 14, t: MT, b: MB }, hovermode: 'x unified', dragmode: 'zoom', annotations: [], shapes: [] });
+  const n = g.rows.length;
+  g.rows.forEach((r, i) => {
+    const [d0, d1, top] = g.dom(i);
+    const xa = axis({ anchor: 'y' + ax(i), showticklabels: i === n - 1, showspikes: true, spikemode: 'across',
+      spikesnap: 'cursor', spikecolor: C.muted, spikethickness: 1, spikedash: 'solid' });
+    if (i > 0) xa.matches = 'x';
+    if (i === n - 1) xa.title = ttl('время от начала записи, с  (0 = ' + D.utc0 + ')');
+    L['xaxis' + ax(i)] = xa;
+    L['yaxis' + ax(i)] = axis({ anchor: 'x' + ax(i), domain: [d0, d1], title: ttl(r.y, 11) });
+    L.annotations.push({ xref: 'paper', yref: 'paper', x: 0, y: top, xanchor: 'left', yanchor: 'top', showarrow: false,
+      text: '<b>' + r.title + '</b>', font: { size: 13, color: C.ink }, xshift: -58 });
+    if (r.legend) L[i === 0 ? 'legend' : 'legend' + (i + 1)] = { orientation: 'h', x: 0, xanchor: 'left', y: top - 20 / g.plotH, yanchor: 'top',
+      xref: 'paper', yref: 'paper', font: { size: 11, color: C.ink2 }, bgcolor: 'rgba(0,0,0,0)', tracegroupgap: 0 };
+  });
+  return L;
+}
+const TG = stackGeom(ROWS);
+let ERR_R = null, FPTICK = -1;
+function errRange() {
+  if (ERR_R == null) {
+    const full = Math.max(1.0, ...eAbs.filter((v) => v != null));
+    const q = Math.max(1.0, quantile(only(E.al, true).map((v) => v == null ? null : Math.abs(v)), 0.99) || 1,
+      quantile(only(E.cr, true).map((v) => v == null ? null : Math.abs(v)), 0.99) || 1);
+    ERR_R = { full: 1.1 * full, typ: Math.min(1.1 * full, 1.3 * q) };
+  }
+  return $('errfull').checked ? ERR_R.full : ERR_R.typ;
+}
+const FX = { fpT: [], fpS: [], fpE: [], fpTxt: [], fpI: [], stT: [], stS: [], stTxt: [], stI: [] };
+F.forEach((f, i) => {
+  const txt = fixName(f) + ' №' + (i + 1) + '<br>t = ' + f.t.toFixed(1) + ' с<br>сдвиг s: ' + sgn(f.shift, 2) + ' м'
+    + (f.job ? '<br>Δ = ' + sgn(f.job.delta, 2) + ' м, ρ = ' + f.job.rho_best.toFixed(2) : '');
+  if (f.src === 1) { FX.stT.push(f.t); FX.stS.push(f.shift); FX.stTxt.push(txt); FX.stI.push(i); return; }
+  const k = bs(E.t, f.t - 1e-6);
+  FX.fpT.push(f.t); FX.fpS.push(f.shift); FX.fpE.push(k >= 0 && f.t - E.t[k] < 1 ? E.al[k] : null); FX.fpTxt.push(txt); FX.fpI.push(i);
+});
+
+function timeFigure() {
+  const tr = [];
+  const add = stackAdd(TG, tr);
+  const gl = 'scattergl';
+  add(0, { type: gl, mode: 'lines', x: IN.front.t, y: IN.front.v, name: 'передняя тележка', line: { color: C.front, width: 1.2 }, hovertemplate: '%{y:.2f} м/с' });
+  add(0, { type: gl, mode: 'lines', x: IN.rear.t, y: IN.rear.v, name: 'задняя тележка', line: { color: C.rear, width: 1.2 }, hovertemplate: '%{y:.2f} м/с' });
+  if (IN.gnss_v.t.length) add(0, { type: gl, mode: 'lines', x: IN.gnss_v.t, y: IN.gnss_v.v, name: 'эталон GNSS', line: { color: C.ref, width: 1.2 }, hovertemplate: '%{y:.2f} м/с' });
+  add(0, { type: gl, mode: 'lines', x: S.t, y: S.v, name: 'наша оценка v', line: { color: C.ours, width: 2 }, hovertemplate: '%{y:.2f} м/с' });
+  if (SR && SR.model_v.t.length) add(0, { type: gl, mode: 'lines', x: SR.model_v.t, y: SR.model_v.v, name: 'только модель тяги (без колёс)', visible: 'legendonly', line: { color: C.mo, width: 1.2 }, hovertemplate: 'модель %{y:.2f} м/с' });
+  if (EP.length) {
+    const vmax = Math.max(1, ...IN.front.v.filter((v) => v != null), ...IN.rear.v.filter((v) => v != null));
+    add(0, { type: 'scatter', mode: 'markers', x: EP.map((e) => e.t0), y: EP.map(() => vmax * 1.06), name: 'эпизод проскальзывания / юза (полоса)',
+      marker: { symbol: 'triangle-down', size: 10, color: C.slipm, line: { color: C.surface, width: 1 } },
+      text: EP.map((e) => 'проскальзывание / юз: ' + e.bogie + ' тележка<br>' + e.t0.toFixed(1) + '–' + e.t1.toFixed(1) + ' с (' + (e.t1 - e.t0).toFixed(1) + ' с)'),
+      hovertemplate: '%{text}<extra></extra>' });
+  }
+  add(1, { type: gl, mode: 'lines', x: IN.cmd.t, y: IN.cmd.p, name: 'контроллер', line: { color: C.ink2, width: 1.5, shape: 'hv' }, hovertemplate: 'позиция %{y}' });
+  add(2, { type: gl, mode: 'lines', x: TR.front.t, y: TR.front.w, name: 'передняя', line: { color: C.front, width: 1.5, shape: 'hv' }, hovertemplate: 'вес %{y:.2f}' });
+  add(2, { type: gl, mode: 'lines', x: TR.rear.t, y: TR.rear.w, name: 'задняя', line: { color: C.rear, width: 1.5, shape: 'hv' }, hovertemplate: 'вес %{y:.2f}' });
+  add(2, { type: gl, mode: 'lines', x: TR.front.td, y: TR.front.wd, name: 'передняя: вес детектора', visible: 'legendonly', line: { color: C.front, width: 1, shape: 'hv' }, opacity: 0.6, hovertemplate: 'детектор %{y:.2f}' });
+  add(2, { type: gl, mode: 'lines', x: TR.rear.td, y: TR.rear.wd, name: 'задняя: вес детектора', visible: 'legendonly', line: { color: C.rear, width: 1, shape: 'hv' }, opacity: 0.6, hovertemplate: 'детектор %{y:.2f}' });
+  if (hasRef) {
+    add(3, { type: gl, mode: 'lines', x: E.t, y: only(E.al, true), name: 'вдоль (+ впереди)', line: { color: C.ours, width: 1.8 }, hovertemplate: 'вдоль %{y:.2f} м' });
+    add(3, { type: gl, mode: 'lines', x: E.t, y: only(E.cr, true), name: 'поперёк (+ влево)', line: { color: C.cross, width: 1.5 }, hovertemplate: 'поперёк %{y:.2f} м' });
+    if (nonRtk) add(3, { type: gl, mode: 'lines', x: E.t, y: only(E.al, false), name: 'вдоль, эталон без RTK (ненадёжен)', line: { color: C.muted, width: 1 }, hovertemplate: 'без RTK: вдоль %{y:.2f} м' });
+    if (D.eA.t.length) add(3, { type: gl, mode: 'lines', x: D.eA.t, y: D.eA.e, name: 'вдоль по s (RTK)', visible: 'legendonly', line: { color: C.ink2, width: 1 }, hovertemplate: 'по s %{y:.2f} м' });
+    FPTICK = tr.length;
+    add(3, { type: 'scatter', mode: 'markers', x: FX.fpT, y: FX.fpT.map(() => -0.97 * errRange()), name: 'привязка: отпечаток', marker: { symbol: 'line-ns', size: 9, line: { color: C.fp, width: 1.5 } }, text: FX.fpTxt, hovertemplate: '%{text}<extra></extra>', customdata: FX.fpI });
+  } else {
+    add(3, { type: 'scatter', mode: 'markers', x: [null], y: [null], name: 'нет эталона GNSS для этой записи', marker: { color: C.muted } });
+  }
+  if (FX.stT.length) add(3, { type: 'scatter', mode: 'markers', x: [null], y: [null], name: 'привязка: стоянка', marker: { symbol: 'line-ns', size: 12, line: { color: C.stop, width: 2 } }, hoverinfo: 'skip' });
+  add(4, { type: 'scatter', mode: 'markers', x: FX.fpT, y: FX.fpS, name: 'по отпечатку', marker: { color: C.fp, size: 5 }, text: FX.fpTxt, hovertemplate: '%{text}<extra></extra>', customdata: FX.fpI });
+  add(4, { type: 'scatter', mode: 'markers', x: FX.stT, y: FX.stS, name: 'по стоянке у платформы', marker: { color: C.stop, size: 10, symbol: 'diamond', line: { color: C.surface, width: 1.5 } }, text: FX.stTxt, hovertemplate: '%{text}<extra></extra>', customdata: FX.stI });
+  add(5, { type: gl, mode: 'lines', x: S.t, y: S.w, name: 'w', line: { color: C.ours, width: 1.8, shape: 'hv' }, hovertemplate: 'w = %{y:.4f}' });
+  add(6, { type: gl, mode: 'lines', x: S.t, y: S.sqrtP, name: '√P_ss', line: { color: C.ours, width: 1.8 }, hovertemplate: '√P_ss = %{y:.2f} м' });
+
+  const L = stackLayout(TG);
+  Object.assign(L.yaxis2, { range: [-16, 16], tickvals: [-15, -10, -5, 0, 5, 10, 15] });
+  Object.assign(L.yaxis3, { range: [-0.06, 1.08], tickvals: [0, 0.5, 1] });
+  if (hasRef) L.yaxis4.range = [-errRange(), errRange()];
+  L.yaxis6.tickformat = '.3f';
+  for (const e of EP) for (const row of [0, 2]) L.shapes.push({ type: 'rect', xref: 'x' + ax(row), yref: 'y' + ax(row) + ' domain',
+    x0: e.t0, x1: e.t1, y0: 0, y1: 1, fillcolor: C.slip, line: { width: 0 }, layer: 'below' });
+  FX.stT.forEach((ts, k) => {
+    for (const row of [3, 4]) L.shapes.push({ type: 'line', xref: 'x' + ax(row), yref: 'y' + ax(row) + ' domain', x0: ts, x1: ts, y0: 0, y1: 1, line: { color: C.stop, width: 1.5 }, layer: 'below' });
+    L.annotations.push({ xref: 'x' + ax(3), yref: 'y' + ax(3) + ' domain', x: ts, y: 0.08 + 0.11 * (k % 3), yanchor: 'bottom', xanchor: 'left', showarrow: false,
+      text: 'стоянка ' + sgn(FX.stS[k], 2) + ' м', font: { size: 10, color: C.ink2 }, bgcolor: C.surface });
+  });
+  L.shapes.push({ type: 'line', xref: 'x' + ax(4), yref: 'y' + ax(4), x0: 0, x1: Tend, y0: 0, y1: 0, line: { color: C.axis, width: 1 }, layer: 'below' });
+  return { data: tr, layout: L };
+}
+
+// ---------------------------------------------------------------- panel 2: single sources and how the filter weighs them
+const FROWS = [
+  { title: '2а. Ошибка вдоль пути: каждый источник сам по себе', h: 250, y: 'ошибка вдоль, м', legend: true, gap: 66 },
+  { title: '2б. Крупно: фильтр ± √P_ss и привязки ± σ', h: 230, y: 'ошибка вдоль, м', legend: true, gap: 66 },
+  { title: '2в. Вес колёс в фильтре (0 — измерение не используется)', h: 110, y: 'вес (0…1)', legend: true },
+  { title: '2г. Какую долю расхождения фильтр принимает: K', h: 170, y: 'K (лог. шкала)', legend: true },
+];
+const FG = stackGeom(FROWS);
+const hasSrc = !!(SR && SE && hasRef);
+const srcRtk = (arr) => arr.map((v, i) => SE.rtk[i] ? v : null);
+const niceUp = (v) => { for (let e = 0; e < 6; e++) for (const m of [1, 2, 3, 5]) if (m * 10 ** e >= v) return m * 10 ** e; return v; };   // 1, 2, 3, 5, 10, 20, …
+const SRC = [['wo', 'только колёса'], ['dop', 'только доплер GNSS'], ['mo', 'только модель тяги'], ['gnss', 'GNSS на маршруте']];
+const srcColor = (k) => ({ wo: C.wo, dop: C.ref, mo: C.mo, gnss: C.muted, f: C.ours })[k];
+const FF = { fp: [], st: [] };
+F.forEach((f, i) => { if (f.e_al != null) (f.src === 1 ? FF.st : FF.fp).push(i); });
+const fixTxt = (i) => { const f = F[i]; return fixName(f) + ' №' + (i + 1) + ', t = ' + f.t.toFixed(1) + ' с<br>ошибка привязки вдоль: ' + sgn(f.e_al, 2) + ' м, σ = ' + f.sigma.toFixed(2) + ' м'
+  + '<br>√P_ss фильтра перед ней: ' + num(f.sqrtPk, 2) + ' м → K = ' + num(f.K, 3) + '<br>сдвиг s: ' + sgn(f.shift, 2) + ' м'; };
+function fuseAuto() {
+  const q = [];
+  if (hasSrc) for (const k of ['wo', 'dop']) q.push(quantile(srcRtk(SE[k]).map((v) => v == null ? null : Math.abs(v)), 0.99) || 0);
+  q.push(quantile(only(E.al, true).map((v) => v == null ? null : Math.abs(v)), 0.99) || 0);
+  return niceUp(Math.max(2, 1.15 * Math.max(...q)));
+}
+function fuseY0() {
+  const v = $('fuser').value;
+  if (v === 'full') return { 'yaxis.autorange': true };
+  const r = v === 'auto' ? fuseAuto() : Number(v);
+  return { 'yaxis.range': [-r, r] };
+}
+function fuseFigure() {
+  const tr = [], add = stackAdd(FG, tr), gl = 'scattergl';
+  if (hasSrc) {
+    for (const [k, name] of SRC) if (SE[k]) add(0, { type: gl, mode: 'lines', x: SE.t, y: srcRtk(SE[k]), name,
+      line: { color: srcColor(k), width: k === 'gnss' ? 1 : 1.6, dash: k === 'dop' ? 'dash' : 'solid' }, hovertemplate: name + ' %{y:.2f} м' });
+    add(0, { type: gl, mode: 'lines', x: E.t, y: only(E.al, true), name: 'фильтр (наш выход)', line: { color: C.ours, width: 1.8 }, hovertemplate: 'фильтр %{y:.2f} м' });
+  } else add(0, { type: 'scatter', mode: 'markers', x: [null], y: [null], name: hasRef ? 'нет выравнивания по GNSS — источники не построены' : 'нет эталона GNSS для этой записи', marker: { color: C.muted } });
+  if (hasRef) {
+    const up = E.al.map((a, i) => (a == null || E.sp[i] == null) ? null : a + E.sp[i]), lo = E.al.map((a, i) => (a == null || E.sp[i] == null) ? null : a - E.sp[i]);
+    add(1, { type: 'scatter', mode: 'lines', x: E.t, y: up, name: '+√P_ss', showlegend: false, line: { width: 0, color: C.band }, hoverinfo: 'skip' });
+    add(1, { type: 'scatter', mode: 'lines', x: E.t, y: lo, name: 'фильтр ± √P_ss', fill: 'tonexty', fillcolor: C.band, line: { width: 0, color: C.band }, hoverinfo: 'skip' });
+    if (hasSrc && SE.gnss) add(1, { type: gl, mode: 'lines', x: SE.t, y: srcRtk(SE.gnss), name: 'GNSS на маршруте', line: { color: C.muted, width: 1 }, hovertemplate: 'GNSS на маршруте %{y:.2f} м' });
+    add(1, { type: gl, mode: 'lines', x: E.t, y: only(E.al, true), name: 'фильтр (наш выход)', line: { color: C.ours, width: 1.8 }, hovertemplate: 'фильтр %{y:.2f} м' });
+    const fixTrace = (ids, name, color, sym, size) => ({ type: 'scatter', mode: 'markers', x: ids.map((i) => F[i].t), y: ids.map((i) => F[i].e_al), name,
+      error_y: { type: 'data', array: ids.map((i) => F[i].sigma), visible: true, color, thickness: 1, width: 0 },
+      marker: { symbol: sym, size, color, line: { color: C.surface, width: 1 } }, customdata: ids, text: ids.map(fixTxt), hovertemplate: '%{text}<extra></extra>' });
+    if (FF.fp.length) add(1, fixTrace(FF.fp, 'привязка: отпечаток ± σ', C.fp, 'circle', 6));
+    if (FF.st.length) add(1, fixTrace(FF.st, 'привязка: стоянка ± σ', C.stop, 'diamond', 10));
+  } else add(1, { type: 'scatter', mode: 'markers', x: [null], y: [null], name: 'нет эталона GNSS', marker: { color: C.muted } });
+  add(2, { type: gl, mode: 'lines', x: TR.front.t, y: TR.front.w, name: 'передняя', line: { color: C.front, width: 1.5, shape: 'hv' }, hovertemplate: 'вес %{y:.2f}' });
+  add(2, { type: gl, mode: 'lines', x: TR.rear.t, y: TR.rear.w, name: 'задняя', line: { color: C.rear, width: 1.5, shape: 'hv' }, hovertemplate: 'вес %{y:.2f}' });
+  const pos = (a) => a.map((v) => (v == null || v <= 0) ? null : v);   // K = 0 (skipped update) has no place on a log axis
+  add(3, { type: gl, mode: 'lines', x: TR.front.tk, y: pos(TR.front.k), name: 'колесо: передняя', line: { color: C.front, width: 1.2 }, hovertemplate: 'K перед. %{y:.3f}' });
+  add(3, { type: gl, mode: 'lines', x: TR.rear.tk, y: pos(TR.rear.k), name: 'колесо: задняя', line: { color: C.rear, width: 1.2 }, hovertemplate: 'K задн. %{y:.3f}' });
+  const kfp = F.map((f, i) => i).filter((i) => F[i].src !== 1 && F[i].K > 0), kst = F.map((f, i) => i).filter((i) => F[i].src === 1 && F[i].K > 0);
+  if (kfp.length) add(3, { type: 'scatter', mode: 'markers', x: kfp.map((i) => F[i].t), y: kfp.map((i) => F[i].K), name: 'привязка: отпечаток', marker: { size: 6, color: C.fp, line: { color: C.surface, width: 1 } }, customdata: kfp, text: kfp.map(fixTxt), hovertemplate: '%{text}<extra></extra>' });
+  if (kst.length) add(3, { type: 'scatter', mode: 'markers', x: kst.map((i) => F[i].t), y: kst.map((i) => F[i].K), name: 'привязка: стоянка', marker: { symbol: 'diamond', size: 10, color: C.stop, line: { color: C.surface, width: 1.5 } }, customdata: kst, text: kst.map(fixTxt), hovertemplate: '%{text}<extra></extra>' });
+  const L = stackLayout(FG);
+  const y0 = fuseY0();
+  if (y0['yaxis.range']) L.yaxis.range = y0['yaxis.range']; else L.yaxis.autorange = true;
+  const z = niceUp(Math.max(1.5, 1.4 * (quantile(only(E.al, true).map((v) => v == null ? null : Math.abs(v)), 0.99) || 1)));
+  L.yaxis2.range = [-z, z];
+  Object.assign(L.yaxis3, { range: [-0.06, 1.08], tickvals: [0, 0.5, 1] });
+  Object.assign(L.yaxis4, { type: 'log', range: [-4.1, 0.08], tickvals: [1e-4, 1e-3, 1e-2, 0.1, 1], ticktext: ['0.0001', '0.001', '0.01', '0.1', '1'] });
+  for (const e of EP) for (const row of [2, 3]) L.shapes.push({ type: 'rect', xref: 'x' + ax(row), yref: 'y' + ax(row) + ' domain',
+    x0: e.t0, x1: e.t1, y0: 0, y1: 1, fillcolor: C.slip, line: { width: 0 }, layer: 'below' });
+  if (SR) for (const row of [0, 1]) L.shapes.push({ type: 'line', xref: 'x' + ax(row), yref: 'y' + ax(row) + ' domain', x0: SR.t_align, x1: SR.t_align, y0: 0, y1: 1, line: { color: C.axis, width: 1, dash: 'dot' }, layer: 'below' });
+  if (SR) L.annotations.push({ xref: 'x', yref: 'y domain', x: SR.t_align, y: 1, xanchor: 'left', yanchor: 'top', showarrow: false, text: 'выравнивание по GNSS', font: { size: 10, color: C.ink2 } });
+  return { data: tr, layout: L };
+}
+function fuseText() {
+  const st = ST.sources;
+  const off = num(D.along_offset_m, 3);
+  $('antoff').textContent = num(D.along_offset_m, 1);
+  $('fusehint').innerHTML = SR
+    ? 'Каждый источник отдельно, без фильтра: от последнего выравнивания по GNSS (t = ' + num(SR.t_align, 2) + ' с, s0 = ' + num(SR.s0, 2) + ' м, ' + SR.path + ') по тому же пути; точка — base_link, как у нашего выхода (точка маршрута s + ' + off + ' м). '
+      + '<b>Колёса</b>: ∫ среднего двух тележек (км/ч ÷ 3.6), без проскальзывания, масштаба и привязок. <b>Модель</b>: только контроллер и таблица тяги ядра (c = 1, b = 0, уклон маршрута, удержание на стоянке), v в начале — v ядра при выравнивании (' + num(SR.v0, 2) + ' м/с). '
+      + '<b>Доплер</b>: ∫ |v| GNSS master — решение его после первых ' + D.gnss_init_s + ' с не видит. <b>GNSS на маршруте</b>: s — проекция сырого фикса master (ошибка при точном s). Ошибка вдоль — как в разделе 6, эпохи без RTK не показаны. '
+      + 'K = HPHᵀ/(HPHᵀ + R): 0 — фильтр держится своего прогноза (модели), 1 — берёт измерение; у колеса — по скорости, у привязки — по пути s; K = 0 (пропуск) на лог. шкале не виден — см. 2в.'
+    : 'Выравнивания по GNSS не было — отдельные источники не построены.';
+  const items = [['wo', 'Только колёса'], ['dop', 'Только доплер GNSS'], ['mo', 'Только модель тяги'], ['f', 'Фильтр (наш выход)'], ['gnss', 'GNSS на маршруте']];
+  $('srctiles').innerHTML = (st && st.epochs)
+    ? items.filter(([k]) => st[k]).map(([k, name]) => `<div class="tile"><div class="k"><span class="sw" style="background:${srcColor(k)}"></span>${name}</div>`
+      + `<div class="v">${num(st[k].along_rmse_m, 2)} <span class="u">м СКО вдоль</span></div><div class="u">в конце ${sgn(st[k].final_along_m, 2)} м · макс. ${num(st[k].max_abs_along_m, 1)} м</div></div>`).join('')
+      + `<div class="tile"><div class="k">Общие эпохи сравнения</div><div class="v">${st.epochs}</div><div class="u">RTK, ${num(st.t_first, 0)}–${num(st.t_last, 0)} с</div></div>`
+    : '<div class="tile"><div class="k">Сводка по источникам</div><div class="v err">нет эталона</div></div>';
+}
+
+// ---------------------------------------------------------------- maps (panel 1): overview and zoom
+const MAPIDX = { o: {}, z: {} };
+let MAPLEG = [];
+function mapFigure(kind) {
+  const zoom = kind === 'z', tr = [], idx = {};
+  const push = (key, o, sw) => {
+    const base = key.replace(/\d+$/, '');
+    (idx[base] = idx[base] || []).push(tr.length);
+    o.showlegend = false; tr.push(o);
+    if (zoom && sw) MAPLEG.push({ key: base, name: o.name, sw });
+  };
+  if (zoom) MAPLEG = [];
+  D.routes.forEach((r, i) => push('route' + i, { type: 'scattergl', mode: 'lines', x: r.x, y: r.y, name: 'маршрут (оба направления)',
+    line: { color: C.route, width: zoom ? 3 : 1.5 }, hoverinfo: 'skip' }, i === 0 ? ['line', C.route] : null));
+  if (D.ref) push('ref', { type: 'scattergl', mode: 'lines', x: D.ref.x, y: D.ref.y, name: 'эталон GNSS (base_link)', line: { color: C.ref, width: 1.5 },
+    customdata: D.ref.t, hovertemplate: 'эталон, t = %{customdata:.1f} с<extra></extra>' }, ['line', C.ref]);
+  const G = D.graw || {};
+  const graw = (key, g, name, sym, sw) => { if (g && g.t.length) push(key, { type: 'scattergl', mode: 'markers', x: g.x, y: g.y, name,
+    marker: { symbol: sym, size: zoom ? 4 : 2.5, color: C.muted }, customdata: g.t, text: g.st.map((v) => v === 2 ? 'RTK fixed' : 'статус ' + v + ' (не RTK)'),
+    hovertemplate: name.split(',')[0] + ' (сырой фикс), t = %{customdata:.1f} с, %{text}<extra></extra>' }, sw); };
+  graw('grm', G.master, 'GNSS master, вся запись (решение видит только первые ' + D.gnss_init_s + ' с)', 'circle', ['dot', C.muted]);
+  graw('grr', G.rover, 'GNSS rover, вся запись', 'diamond', ['diamond', C.muted]);
+  const SRCMAP = [['wo', 'только колёса', 'circle'], ['mo', 'только модель тяги', 'circle'], ['dop', 'только доплер GNSS', 'triangle-up']];
+  for (const [k, name, sym] of SRCMAP) {
+    const tk = SR && SR.tracks[k];
+    if (tk) push(k + '1', { type: 'scattergl', mode: 'lines', x: tk.x, y: tk.y, name, line: { color: k === 'dop' ? C.ink2 : srcColor(k), width: zoom ? 2 : 1.2 },
+      customdata: tk.t, hovertemplate: name + ', t = %{customdata:.1f} с<extra></extra>' }, ['lmark', [k === 'dop' ? C.ink2 : srcColor(k), sym]]);
+  }
+  push('ours', { type: 'scattergl', mode: 'lines', x: S.x, y: S.y, name: 'наша оценка', line: { color: C.ours, width: 1.5 },
+    customdata: S.t, hovertemplate: 'наша оценка, t = %{customdata:.1f} с<extra></extra>' }, ['line', C.ours]);
+  if (hasRef && zoom) {
+    let cmax = quantile(eAbs, 0.98) || 1; cmax = Math.max(1, Math.ceil(cmax * 2) / 2);
+    const n = C.seq.length;
+    push('err', { type: 'scattergl', mode: 'markers', x: only(E.x, true), y: only(E.y, true), name: 'наша оценка, цвет = |ошибка| (эталон RTK)', customdata: E.t,
+      marker: { size: 5, color: eAbs, cmin: 0, cmax, colorscale: C.seq.map((c, k) => [k / (n - 1), c]),
+        colorbar: { title: { text: '|ошибка|, м', side: 'right', font: { color: C.ink2, size: 11 } }, thickness: 10, len: 0.6, x: 1.01, xanchor: 'left', xpad: 2,
+          tickfont: { color: C.muted, size: 10 }, outlinewidth: 0 } },
+      hovertemplate: 't = %{customdata:.1f} с<br>|ошибка| = %{marker.color:.2f} м<extra></extra>' }, ['grad', C.seq]);
+  }
+  const gm = D.gnss.filter((g) => g.ant === 'master'), gr = D.gnss.filter((g) => g.ant !== 'master');
+  const gtxt = (g) => 'GNSS ' + g.ant + ', t = ' + g.t.toFixed(2) + ' с, статус ' + g.status;
+  if (zoom && gm.length) push('gm', { type: 'scatter', mode: 'markers', x: gm.map((g) => g.x), y: gm.map((g) => g.y), name: 'GNSS master, первые ' + D.gnss_init_s + ' с',
+    marker: { symbol: 'circle-open', size: 8, color: C.ref, line: { width: 1.5 } }, text: gm.map(gtxt), hovertemplate: '%{text}<extra></extra>' }, ['ring', C.ref]);
+  if (zoom && gr.length) push('gr', { type: 'scatter', mode: 'markers', x: gr.map((g) => g.x), y: gr.map((g) => g.y), name: 'GNSS rover, первые ' + D.gnss_init_s + ' с',
+    marker: { symbol: 'diamond-open', size: 8, color: C.ref, line: { width: 1.5 } }, text: gr.map(gtxt), hovertemplate: '%{text}<extra></extra>' }, ['dring', C.ref]);
+  if (D.start) push('s0', { type: 'scatter', mode: 'markers', x: [D.start.x], y: [D.start.y], name: 'старт s0 (антенна master)',
+    marker: { symbol: 'star', size: 15, color: C.ink, line: { color: C.surface, width: 1.5 } },
+    text: ['старт: s0 = ' + D.start.s0.toFixed(2) + ' м на ' + D.start.path + '<br>выбран в t = ' + num(D.start.t, 2) + ' с (выравниваний за окно GNSS: ' + D.start.n_align + ')'
+      + '<br>стартовое смещение «фикс − маршрут»: ' + num(D.start.offset_xy[0], 2) + ', ' + num(D.start.offset_xy[1], 2) + ' м (гаснет за 160 м пути)'],
+    hovertemplate: '%{text}<extra></extra>' }, ['star', C.ink]);
+  if (D.platforms.length) push('plat', { type: 'scatter', mode: 'markers', x: D.platforms.map((p) => p.x), y: D.platforms.map((p) => p.y), name: 'платформы маршрута',
+    marker: { symbol: 'square', size: zoom ? 9 : 7, color: C.plat, line: { color: C.surface, width: 1 } },
+    text: D.platforms.map((p) => 'платформа: s = ' + p.s.toFixed(1) + ' м, разброс места стоянки σ = ' + p.std.toFixed(1) + ' м'), hovertemplate: '%{text}<extra></extra>' }, ['square', C.plat]);
+  const fsel = (st) => F.map((f, i) => [f, i]).filter(([f]) => (st ? f.src === 1 : f.src !== 1) && f.xy_ok);
+  const ftxt = ([f, i]) => fixName(f) + ' №' + (i + 1) + ', t = ' + f.t.toFixed(1) + ' с<br>сдвиг s: ' + sgn(f.shift, 2) + ' м';
+  const fp = fsel(false), st = fsel(true);
+  if (zoom && fp.length) push('fp', { type: 'scatter', mode: 'markers', x: fp.map(([f]) => f.x), y: fp.map(([f]) => f.y), name: 'привязки по отпечатку',
+    marker: { size: 7, color: C.fp, line: { color: C.surface, width: 1 } }, text: fp.map(ftxt), customdata: fp.map(([, i]) => i), hovertemplate: '%{text}<extra></extra>' }, ['dot', C.fp]);
+  if (st.length) push('st', { type: 'scatter', mode: 'markers', x: st.map(([f]) => f.x), y: st.map(([f]) => f.y), name: 'привязки по стоянке',
+    marker: { symbol: 'diamond', size: zoom ? 12 : 9, color: C.stop, line: { color: C.surface, width: 1.5 } }, text: st.map(ftxt), customdata: st.map(([, i]) => i), hovertemplate: '%{text}<extra></extra>' }, ['diamond', C.stop]);
+  for (const [k, name, sym] of SRCMAP) if (SR && SR.tracks[k]) push(k + '2', { type: 'scatter', mode: 'markers', x: [null], y: [null], name: name + ' сейчас',
+    marker: { symbol: sym, size: zoom ? 13 : 10, color: k === 'dop' ? C.ink2 : srcColor(k), line: { color: C.surface, width: 1.5 } }, hoverinfo: 'skip' }, null);
+  push('nowref', { type: 'scatter', mode: 'markers', x: [null], y: [null], name: 'эталон сейчас', marker: { symbol: 'circle-open', size: zoom ? 18 : 14, color: C.ref, line: { width: 2.5 } }, hoverinfo: 'skip' }, ['ring', C.ref]);
+  push('now', { type: 'scatter', mode: 'markers', x: [null], y: [null], name: 'мы сейчас', marker: { size: zoom ? 14 : 12, color: C.ink, line: { color: C.now, width: 3 } }, hoverinfo: 'skip' }, ['nowdot', [C.ink, C.now]]);
+  MAPIDX[kind] = idx;
+  const L = baseLayout({ margin: zoom ? { l: 70, r: 64, t: 8, b: 44 } : { l: 60, r: 10, t: 6, b: 40 }, hovermode: 'closest', dragmode: 'pan', showlegend: false,
+    xaxis: axis({ title: zoom ? ttl('x, м (сетка: UTM 37N, E − 300 000)') : ttl('x, м', 11), tickformat: 'd', tickfont: { color: C.muted, size: zoom ? 11 : 10 } }),
+    yaxis: axis({ title: ttl(zoom ? 'y, м (N − 6 100 000)' : 'y, м', zoom ? 12 : 11), scaleanchor: 'x', scaleratio: 1, tickformat: 'd', tickfont: { color: C.muted, size: zoom ? 11 : 10 } }),
+    shapes: zoom ? [] : [{ type: 'rect', xref: 'x', yref: 'y', x0: 0, x1: 0, y0: 0, y1: 0, line: { color: C.now, width: 1.5 }, fillcolor: 'rgba(0,0,0,0)', visible: false }] });
+  return { data: tr, layout: L };
+}
+function swatch(kind, c) {
+  const m = 'xmlns="http://www.w3.org/2000/svg" width="20" height="12" aria-hidden="true"';
+  switch (kind) {
+    case 'line': return `<svg ${m}><line x1="1" y1="6" x2="19" y2="6" stroke="${c}" stroke-width="2.5"/></svg>`;
+    case 'grad': return `<svg ${m}><defs><linearGradient id="gq"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[c.length - 1]}"/></linearGradient></defs><rect x="1" y="3" width="18" height="6" rx="2" fill="url(#gq)"/></svg>`;
+    case 'ring': return `<svg ${m}><circle cx="10" cy="6" r="4" fill="none" stroke="${c}" stroke-width="1.8"/></svg>`;
+    case 'dot': return `<svg ${m}><circle cx="10" cy="6" r="4.5" fill="${c}"/></svg>`;
+    case 'nowdot': return `<svg ${m}><circle cx="10" cy="6" r="4" fill="${c[0]}" stroke="${c[1]}" stroke-width="2"/></svg>`;
+    case 'square': return `<svg ${m}><rect x="5.5" y="1.5" width="9" height="9" fill="${c}"/></svg>`;
+    case 'diamond': return `<svg ${m}><polygon points="10,0.5 15.5,6 10,11.5 4.5,6" fill="${c}"/></svg>`;
+    case 'dring': return `<svg ${m}><polygon points="10,1.5 14.5,6 10,10.5 5.5,6" fill="none" stroke="${c}" stroke-width="1.6"/></svg>`;
+    case 'lmark': {
+      const [col, sym] = c, mk = sym === 'triangle-up' ? `<polygon points="10,1.5 14.5,10 5.5,10" fill="${col}"/>` : `<circle cx="10" cy="6" r="4" fill="${col}"/>`;
+      return `<svg ${m}><line x1="1" y1="6" x2="19" y2="6" stroke="${col}" stroke-width="2"/>${mk}</svg>`;
+    }
+    case 'star': return `<svg ${m}><polygon points="10,0.5 11.8,4.3 16,4.8 12.9,7.6 13.7,11.6 10,9.6 6.3,11.6 7.1,7.6 4,4.8 8.2,4.3" fill="${c}"/></svg>`;
+    default: return '';
+  }
+}
+const legendOff = new Set(['grr']);   // rover fixes hidden by default
+function mapLegend() {
+  const el = $('maplegend');
+  el.innerHTML = MAPLEG.map((e, k) => `<button type="button" class="li" aria-pressed="${!legendOff.has(e.key)}" data-k="${k}">${swatch(e.sw[0], e.sw[1])}<span>${e.name}</span></button>`).join('');
+  el.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    const e = MAPLEG[Number(b.dataset.k)], on = legendOff.has(e.key);
+    if (on) legendOff.delete(e.key); else legendOff.add(e.key);
+    b.setAttribute('aria-pressed', String(on));
+    for (const [k, gd] of [['z', gdM], ['o', gdO]]) { const ii = MAPIDX[k][e.key]; if (ii) Plotly.restyle(gd, { visible: on }, ii); }
+  }));
+  for (const key of legendOff) for (const [k, gd] of [['z', gdM], ['o', gdO]]) { const ii = MAPIDX[k][key]; if (ii) Plotly.restyle(gd, { visible: false }, ii); }
+}
+
+// ---------------------------------------------------------------- along s (panel 7)
+const R2P = 1e-2;  // stored r * 1e5 -> permille (r * 1e3)
+let ALONG = null;
+function alongData() {
+  const ms = A.map_r.map((_, k) => A.map_s0 + k * A.bin_m);
+  return { ms, mr: A.map_r.map((v, k) => A.map_known[k] ? v * R2P : null), rs: A.rec_s, rr: A.rec_r.map((v) => v * R2P),
+    gs: A.gnss_s, gr: A.gnss_r.map((v) => v * R2P) };
+}
+function alongFigure() {
+  const d = ALONG, sm = $('smooth').checked, f = (xs, ys) => sm ? movavg(xs, ys, 2.5) : ys;
+  const R = Math.max(1, quantile(d.rr.map(Math.abs), 0.995) || 1) * 1.1;
+  const fx = F.map((q, i) => [q, i]).filter(([q]) => q.src === 0);
+  const tr = [
+    { type: 'scattergl', mode: 'lines', x: d.ms, y: f(d.ms, d.mr), name: 'карта-отпечаток (среднее по обучающим поездкам)', line: { color: C.ref, width: 1.8 }, hovertemplate: 'карта %{y:.2f} ‰<extra></extra>' },
+    { type: 'scattergl', mode: 'lines', x: d.rs, y: f(d.rs, d.rr), name: 'эта запись, по нашей оценке s', line: { color: C.ours, width: 1.2 }, hovertemplate: 'запись %{y:.2f} ‰<extra></extra>' },
+    { type: 'scattergl', mode: 'lines', x: d.gs, y: f(d.gs, d.gr), name: 'эта запись, по положению GNSS (для сравнения)', visible: 'legendonly', line: { color: C.front, width: 1.2 }, hovertemplate: 'запись (GNSS) %{y:.2f} ‰<extra></extra>' },
+    { type: 'scatter', mode: 'markers', x: fx.map(([q]) => q.s_fix - A.offset), y: fx.map(() => -0.92 * R), name: 'принятые привязки',
+      marker: { symbol: 'triangle-up', size: 8, color: C.fp }, customdata: fx.map(([, i]) => i),
+      text: fx.map(([q, i]) => 'привязка №' + (i + 1) + ', t = ' + q.t.toFixed(1) + ' с, s = ' + q.s_fix.toFixed(1) + ' м, сдвиг ' + sgn(q.shift, 2) + ' м'), hovertemplate: '%{text}<extra></extra>' },
+  ];
+  const L = baseLayout({ margin: { l: 64, r: 14, t: 8, b: 92 }, hovermode: 'x unified', dragmode: 'zoom',
+    xaxis: axis({ title: ttl('s вдоль маршрута (антенна master), м'), tickformat: 'd' }),
+    yaxis: axis({ title: ttl('r = (v_пер − v_зад)/v, ‰'), range: [-R, R] }), legend: legendBottom(), shapes: [] });
+  return { data: tr, layout: L };
+}
+function decodeJob(f) {
+  const j = f.job, pos = []; let acc = 0;
+  j.pos_cm.forEach((v, k) => { acc = k === 0 ? v : acc + v; pos.push(acc / 100); });
+  return { pos, y: j.y.map((v) => v * 1e-5), rho: j.rho.map((v) => v * 1e-3), dl: j.rho.map((_, k) => (k + j.i_lo) * j.h) };
+}
+function mapAt(s) {   // raw map value (as the matcher uses it) at map coordinate s, linear between bins
+  const k = (s - A.map_s0) / A.bin_m, i = Math.floor(k);
+  if (i < 0 || i + 1 >= A.map_r.length) return null;
+  return (A.map_r[i] + (k - i) * (A.map_r[i + 1] - A.map_r[i])) * 1e-5;
+}
+function inspector() {
+  if (selFix < 0 || !A) {
+    $('fixtitle').textContent = A ? 'в этой записи нет принятых привязок по отпечатку' : 'матчер не работал на этой записи';
+    Plotly.purge($('win')); Plotly.purge($('rho'));
+    return;
+  }
+  const f = F[selFix], j = f.job, w = decodeJob(f), k0 = fpIdx.indexOf(selFix);
+  const P = A.p, rhoMin = j.reacq ? P.reacq_rho_min : P.rho_min, prMin = j.reacq ? P.reacq_pr_min : P.pr_min;
+  $('fixtitle').innerHTML = `Привязка по отпечатку <b>${k0 + 1}</b> из ${fpIdx.length} · t = ${f.t.toFixed(1)} с · найдено Δ = <b>${sgn(j.delta, 2)} м</b>`
+    + ` (ворота ±${j.gate.toFixed(1)} м${j.reacq ? ', широкий поиск' : ''}) · ρ = ${j.rho_best.toFixed(2)} (порог ${rhoMin.toFixed(2)}) · PR = ${j.pr == null ? '∞' : j.pr.toFixed(2)} (порог ${prMin.toFixed(1)})`
+    + ` · фильтр сдвинул s на ${sgn(f.shift, 2)} м · √P_ss: ${f.sqrtP0.toFixed(2)} → ${f.sqrtP1.toFixed(2)} м · от прошлой привязки ${j.d_since.toFixed(0)} м`;
+  const order = w.pos.map((_, i) => i).sort((a, b) => w.pos[a] - w.pos[b]);
+  const px = order.map((i) => w.pos[i]), py = zscore(order.map((i) => w.y[i]));
+  const lo = px[0] + Math.min(0, j.delta) - 8, hi = px[px.length - 1] + Math.max(0, j.delta) + 8;
+  const mx = [], mv = [];
+  for (let s = Math.ceil((lo - A.map_s0) / A.bin_m) * A.bin_m + A.map_s0; s <= hi; s += A.bin_m) { mx.push(s); mv.push(mapAt(s)); }
+  const mm = px.map((p) => mapAt(p + j.delta)).filter((v) => v != null);
+  const mu = mm.reduce((a, b) => a + b, 0) / Math.max(1, mm.length);
+  const msd = Math.sqrt(mm.reduce((a, b) => a + (b - mu) * (b - mu), 0) / Math.max(1, mm.length)) || 1;
+  const mz = mv.map((v) => v == null ? null : (v - mu) / msd);
+  const sm = $('smooth').checked, g = (xs, ys) => sm ? movavg(xs, ys, 2.5) : ys;
+  Plotly.react($('win'), [
+    { type: 'scatter', mode: 'lines', x: mx, y: g(mx, mz), name: 'карта', line: { color: C.ref, width: 1.8 }, hovertemplate: 'карта %{y:.2f}<extra></extra>' },
+    { type: 'scatter', mode: 'lines', x: px, y: g(px, py), name: 'окно до сдвига (по нашей оценке)', line: { color: C.ours, width: 1 }, opacity: 0.35, hovertemplate: 'до %{y:.2f}<extra></extra>' },
+    { type: 'scatter', mode: 'lines', x: px.map((p) => p + j.delta), y: g(px, py), name: 'окно после сдвига на Δ', line: { color: C.ours, width: 1.6 }, hovertemplate: 'после %{y:.2f}<extra></extra>' },
+  ], baseLayout({ margin: { l: 56, r: 10, t: 8, b: 84 }, hovermode: 'x unified',
+    xaxis: axis({ title: ttl('s вдоль маршрута (антенна master), м', 11), tickformat: 'd' }),
+    yaxis: axis({ title: ttl('r, нормировано (в СКО)', 11) }), legend: legendBottom() }), CFG);
+  {   // show the 40 m of the window with the strongest map relief, so that a shift of ~1 m is visible
+    let best = null, bestE = -1;
+    for (let a = 0, b = 0, e = 0; a < mx.length; a++) {
+      while (b < mx.length && mx[b] <= mx[a] + 40) { e += (mz[b] || 0) ** 2; b++; }
+      if (e > bestE && mx[a] >= px[0] + j.delta && mx[a] + 40 <= px[px.length - 1] + j.delta) { bestE = e; best = mx[a]; }
+      e -= (mz[a] || 0) ** 2;
+    }
+    if (best != null) Plotly.relayout($('win'), { 'xaxis.range': [best, best + 40] });
+  }
+  let bk = 0; for (let k = 0; k < w.rho.length; k++) if (Math.abs(w.dl[k] - j.delta) < 1e-6) bk = k;
+  const excl = Math.floor(P.excl_m / j.h + 1e-9);
+  let sk = -1; for (let k = 0; k < w.rho.length; k++) if (Math.abs(k - bk) > excl && (sk < 0 || w.rho[k] > w.rho[sk])) sk = k;
+  const rt = [
+    { type: 'scatter', mode: 'lines', x: w.dl, y: w.rho, name: 'ρ(Δ)', line: { color: C.fp, width: 1.8 }, hovertemplate: 'Δ = %{x:.2f} м: ρ = %{y:.3f}<extra></extra>' },
+    { type: 'scatter', mode: 'markers', x: [j.delta], y: [j.rho_best], name: 'лучший пик в воротах', marker: { color: C.fp, size: 10, line: { color: C.surface, width: 2 } }, hovertemplate: 'пик: Δ = %{x:.2f} м, ρ = %{y:.3f}<extra></extra>' },
+  ];
+  if (sk >= 0) rt.push({ type: 'scatter', mode: 'markers', x: [w.dl[sk]], y: [w.rho[sk]], name: 'лучший пик дальше ±' + P.excl_m + ' м', marker: { symbol: 'circle-open', color: C.ink2, size: 10, line: { width: 2 } }, hovertemplate: 'второй: Δ = %{x:.2f} м, ρ = %{y:.3f}<extra></extra>' });
+  Plotly.react($('rho'), rt, baseLayout({ margin: { l: 56, r: 10, t: 8, b: 84 }, hovermode: 'closest',
+    xaxis: axis({ title: ttl('сдвиг Δ относительно нашей оценки, м', 11) }),
+    yaxis: axis({ title: ttl('корреляция ρ', 11), range: [-1, 1] }), legend: legendBottom(),
+    shapes: [
+      { type: 'rect', xref: 'x', yref: 'paper', x0: -j.gate, x1: j.gate, y0: 0, y1: 1, fillcolor: C.gate, line: { width: 0 }, layer: 'below' },
+      { type: 'line', xref: 'paper', yref: 'y', x0: 0, x1: 1, y0: rhoMin, y1: rhoMin, line: { color: C.muted, width: 1 } },
+    ],
+    annotations: [
+      { xref: 'x', yref: 'paper', x: 0, y: 1, yanchor: 'top', showarrow: false, text: 'ворота ±' + j.gate.toFixed(1) + ' м', font: { size: 10, color: C.ink2 } },
+      { xref: 'paper', yref: 'y', x: 1, y: rhoMin, xanchor: 'right', yanchor: 'bottom', showarrow: false, text: 'порог ρ = ' + rhoMin.toFixed(2), font: { size: 10, color: C.ink2 } },
+    ] }), CFG);
+  if (gdA.data) {
+    const x0 = px[0] + j.delta, x1 = px[px.length - 1] + j.delta;
+    const upd = { shapes: [{ type: 'rect', xref: 'x', yref: 'paper', x0, x1, y0: 0, y1: 1, fillcolor: C.gate, line: { width: 0 }, layer: 'below' }] };
+    if ($('alongfollow').checked) upd['xaxis.range'] = [x0 - 20, x1 + 20];
+    Plotly.relayout(gdA, upd);
+  }
+  document.querySelectorAll('#fixtable tr.sel').forEach((r) => r.classList.remove('sel'));
+  const row = document.getElementById('fx' + selFix); if (row) row.classList.add('sel');
+}
+
+// ---------------------------------------------------------------- table, definitions
+function table() {
+  const h = '<tr><th>№</th><th>тип</th><th>t, с</th><th>s, м</th><th>сдвиг s, м</th><th>σ привязки, м</th><th>√P_ss до, м</th><th>√P_ss после, м</th><th>K</th><th>ошибка привязки вдоль, м</th><th>w после</th><th>Δ, м</th><th>ρ</th><th>PR</th></tr>';
+  const rows = F.map((f, i) => `<tr id="fx${i}" data-i="${i}"><td>${i + 1}</td><td class="l">${f.src === 0 ? 'отпечаток' : f.src === 1 ? 'стоянка' : 'другая'}</td><td>${f.t.toFixed(2)}</td><td>${f.s_fix.toFixed(2)}</td><td>${sgn(f.shift, 3)}</td><td>${f.sigma.toFixed(2)}</td><td>${f.sqrtP0.toFixed(3)}</td><td>${f.sqrtP1.toFixed(3)}</td><td>${num(f.K, 4)}</td><td>${sgn(f.e_al, 2)}</td><td>${f.w1.toFixed(5)}</td><td>${f.job ? sgn(f.job.delta, 2) : ''}</td><td>${f.job ? f.job.rho_best.toFixed(2) : ''}</td><td>${f.job ? (f.job.pr == null ? '∞' : f.job.pr.toFixed(2)) : ''}</td></tr>`);
+  $('fixtable').innerHTML = h + rows.join('');
+  $('fixtable').addEventListener('click', (e) => { const r = e.target.closest('tr[data-i]'); if (r) pickFix(Number(r.dataset.i)); });
+  const defs = [
+    'Время: секунды от первого выходного сообщения (метки заголовков сообщений); 0 = ' + D.utc0 + '.',
+    'Скорость колёс: в записи км/ч, на графике м/с = км/ч ÷ 3.6. Эталон скорости — горизонтальная скорость GNSS антенны master, м/с.',
+    'Эталон положения base_link: антенна master + ' + num(D.along_offset_m, 3) + ' м вдоль оси кузова (по двум антеннам); для проверочной записи организаторов — их топик /localization/kinematic_state. Ошибка = наша точка − эталон; «вдоль» — проекция на касательную маршрута в нашей точке (+ — мы впереди), «поперёк» — на левую нормаль.',
+    'Кривые ошибки и цвет трека: наша точка, линейно интерполированная на момент эталона (выходы упорядочены по метке времени, соседние не дальше 0.1 с); эпохи, где фикс master не RTK fixed (статус ≠ 2), показаны отдельно серым как ненадёжные. Плитки СКО: правило оценки команды — к каждому нашему выходу ближайший эталон в пределах 0.05 с; оно добавляет дрожание до v × 0.05 с (0.5 м при 10 м/с), поэтому плитки чуть больше, чем видно на кривых. Метки выходов идут не строго по порядку (тележки и контроллер приходят с разной задержкой, обычно до 0.1 с); для метки, отстающей от времени фильтра меньше чем на 0.25 с, ядро отдаёт самое новое состояние, поэтому такой выход впереди на ≈ v × отставание — это есть в публикуемых данных и видно на кривых как мелкое дрожание.',
+    '«Вдоль по s (RTK)» — s оценки минус проекция RTK-фикса антенны master на маршрут (статус RTK fixed, |боковое| < 1.5 м, позже 30 с после старта), как в наших оценках.',
+    'Вес колеса: вес, с которым фильтр принял измерение тележки (1 — полное доверие, 0 — пропущено: проскальзывание/юз, скачок скорости, партнёр в эпизоде). «Вес детектора» — вес SlipDetector до этих правил. Показан минимум за 0.25 с.',
+    'Эпизод проскальзывания/юза — интервал, где детектор держит флаг slip хотя бы для одной тележки.',
+    'Сдвиг при привязке — изменение s сразу после привязки, м. √P_ss — СКО пути s по ковариации фильтра, м (без добавки за неизвестный масштаб колёс, которую фильтр прибавляет только перед привязкой).',
+    'r(s) записи — ячейки матчера (среднее отобранных пар за 0.5 м пути; отбор: v > 2 м/с, |v_пер − v_зад| ≤ 0.5 м/с, |dv/dt| ≤ 2.5 м/с²), положенные в s нашей оценки в момент записи ячейки; медиана записи вычтена (в карте медиана каждой поездки тоже вычтена). ‰ = r × 1000. Положение «по GNSS» — проекция антенны master на маршрут.',
+    'Прореживание: ряды по времени — 4 Гц, скорости колёс и GNSS — 5 Гц, эталон на карте — 2 Гц; полная частота ±2 с около стоянок, границ эпизодов и в первые 10 с, ±0.3 с около привязок по отпечатку.',
+    'Раздел 2, отдельные источники (каждый сам по себе, без фильтра, от момента последнего выравнивания ядра по GNSS, на пути этого выравнивания; точка — route.pose(s + ' + num(D.along_offset_m, 3) + ' м), как у нашего выхода, без стартового смещения): «только колёса» — s0 + ∫ среднего двух тележек (каждая линейно интерполирована на общие метки, км/ч ÷ 3.6), без обработки проскальзывания, масштаба w и привязок; «только модель тяги» — таблица тяги ядра (TractionModel) по контроллеру с задержкой ' + num(D.model_delay_s, 2) + ' с, c = 1, b = 0, уклон маршрута как в ядре, удержание на стоянке как в ядре, но без проверки колёс (колёса не используются), v в момент выравнивания — v ядра (' + (D.src ? num(D.src.v0, 2) : '—') + ' м/с), шаги времени как в ядре; «только доплер GNSS» — s0 + ∫ |v| антенны master (офлайн: решение видит GNSS только первые ' + D.gnss_init_s + ' с); «GNSS на маршруте» — s = проекция сырого фикса master на тот же путь, т. е. ошибка нашей схемы «точка маршрута + ' + num(D.along_offset_m, 3) + ' м» при точном s.',
+    'Раздел 2, ошибка вдоль — как в разделе 6: точка источника на эпохе эталона, проекция на касательную маршрута в этой точке; эпохи без RTK не показаны. Плитки: СКО и значение в последней эпохе по общим эпохам (RTK fixed, после выравнивания, все источники определены) — определение отличается от плиток сверху (правило оценки команды), поэтому числа фильтра немного расходятся. Ошибка привязки — точка маршрута s привязки + ' + num(D.along_offset_m, 3) + ' м минус эталон в момент привязки, вдоль; усы — σ привязки.',
+    'K = HPHᵀ/(HPHᵀ + R) — доля расхождения «измерение − прогноз», которую принимает обновление фильтра: у тележки H = [0, w, 0, 0, v] (скорость, R = σ²/вес; показан минимум за 0.25 с, 0 — измерение пропущено), у привязки H = [1, 0, 0, 0, 0] (путь; P_ss уже с добавкой за масштаб колёс, R = σ²). Полоса ±√P_ss — без этой добавки.',
+    'Не показано: высота z и её ошибка; смещение b и коэффициент c ускорения фильтра; ускорение модели тяги; окна матчера, не давшие привязку (отклонено: ' + (ST.matcher_stats ? ST.matcher_stats.reject : '—') + ').',
+    'Выходы этого прогона совпадают с прогоном ядра без обёрток бит в бит (stamp, x, y, z, v) — проверка ключом --check.',
+  ];
+  $('defs').innerHTML = defs.map((d) => '<li>' + d + '</li>').join('');
+  if (A && A.p.excl_m != null) $('exclm').textContent = '±' + A.p.excl_m;
+  $('alonghint').textContent = A
+    ? 'Профиль r по маршруту: карта (серая) и эта запись (синяя). Треугольники — принятые привязки, затенено — окно выбранной привязки, красная линия — текущее положение. Карта: ' + A.map_file + '.'
+    : 'Матчер не работал на этой записи (нет маршрута или карты-отпечатка).';
+}
+
+// ---------------------------------------------------------------- time cursor
+const gdT = $('time'), gdM = $('map'), gdO = $('mapo'), gdA = $('along'), gdF = $('fuse');
+function vline(gd, el, val) {
+  const fl = gd._fullLayout;
+  if (!fl || !fl.xaxis || val == null || !isFinite(val)) { el.style.display = 'none'; return; }
+  const xa = fl.xaxis, px = xa._offset + xa.l2p(val);
+  if (!(px >= xa._offset - 0.5 && px <= xa._offset + xa._length + 0.5)) { el.style.display = 'none'; return; }
+  el.style.display = 'block'; el.style.left = (px - 1) + 'px';
+  el.style.top = fl.margin.t + 'px'; el.style.height = (fl.height - fl.margin.t - fl.margin.b) + 'px';
+}
+let raf = 0, insTimer = 0, lastFixDrawn = -2;
+function setTime(t, src) {
+  T = Math.max(0, Math.min(Tend, t));
+  if (src !== 'slider') $('slider').value = T;
+  if (!raf) raf = requestAnimationFrame(draw);
+}
+function fixAt(t) {
+  let best = -1;
+  for (const i of fpIdx) { if (F[i].t <= t + 1e-6) best = i; else break; }
+  return best < 0 && fpIdx.length ? fpIdx[0] : best;
+}
+function draw() {
+  raf = 0;
+  const x = interp(S.t, S.x, T), y = interp(S.t, S.y, T);
+  const rx = D.ref ? interp(D.ref.t, D.ref.x, T, 1.5) : null, ry = D.ref ? interp(D.ref.t, D.ref.y, T, 1.5) : null;
+  const srcAt = (k) => { const tk = SR && SR.tracks[k]; return tk ? [interp(tk.t, tk.x, T, 1.0), interp(tk.t, tk.y, T, 1.0)] : [null, null]; };
+  const SP = ['wo', 'mo', 'dop'].map((k) => [k, srcAt(k)]);
+  const now = (k) => { const id = MAPIDX[k], ii = [id.now[0], id.nowref[0]], xs = [[x], [rx]], ys = [[y], [ry]];
+    for (const [s_, p] of SP) if (id[s_] && id[s_].length > 1) { ii.push(id[s_][1]); xs.push([p[0]]); ys.push([p[1]]); }
+    return { ii, xs, ys }; };
+  let hx = 0, hy = 0;
+  if (gdM.data) {
+    const lay = {};
+    if ($('follow').checked && x != null) {
+      const fl = gdM._fullLayout, r = Number($('zoomr').value), w = fl.xaxis._length, h = fl.yaxis._length;
+      hx = w >= h ? r * w / h : r; hy = w >= h ? r : r * h / w;
+      lay['xaxis.range'] = [x - hx, x + hx]; lay['yaxis.range'] = [y - hy, y + hy];
+    }
+    const n = now('z');
+    Plotly.update(gdM, { x: n.xs, y: n.ys }, lay, n.ii);
+  }
+  if (gdO.data) {
+    const on = hx > 0;
+    const n = now('o');
+    Plotly.update(gdO, { x: n.xs, y: n.ys }, { 'shapes[0].visible': on, 'shapes[0].x0': x - hx, 'shapes[0].x1': x + hx, 'shapes[0].y0': y - hy, 'shapes[0].y1': y + hy }, n.ii);
+  }
+  vline(gdT, $('tline'), T);
+  vline(gdF, $('fline'), T);
+  const s = interp(S.t, S.s, T);
+  if (A) vline(gdA, $('aline'), s == null ? null : s - A.offset);
+  const ea = hasRef ? interp(E.t, E.al, T, 1) : null, ec = hasRef ? interp(E.t, E.cr, T, 1) : null;
+  const ki = bs(E.t, T), rtkNow = ki < 0 || !!E.rtk[ki];
+  const vf = interp(IN.front.t, IN.front.v, T, 1), vr = interp(IN.rear.t, IN.rear.v, T, 1), vg = interp(IN.gnss_v.t, IN.gnss_v.v, T, 1);
+  $('readout').innerHTML = `<b>t = ${T.toFixed(1)} с</b> (${utc(T)} UTC) · s = ${num(s, 1)} м · v = <b>${num(interp(S.t, S.v, T), 2)}</b> м/с`
+    + ` (колёса ${num(vf, 2)} / ${num(vr, 2)}, GNSS ${num(vg, 2)}) · ошибка вдоль <b>${sgn(ea, 2)}</b> м, поперёк ${sgn(ec, 2)} м${rtkNow ? '' : ' (эталон без RTK)'}`
+    + ` · контроллер ${stepAt(IN.cmd.t, IN.cmd.p, T) ?? '—'} · w = ${num(stepAt(S.t, S.w, T), 4)} · √P_ss = ${num(interp(S.t, S.sqrtP, T), 2)} м`
+    + (hasSrc ? ` · без фильтра, ошибка вдоль: колёса ${sgn(interp(SE.t, SE.wo || [], T, 1), 1)}, доплер ${sgn(interp(SE.t, SE.dop || [], T, 1), 1)}, модель ${sgn(interp(SE.t, SE.mo || [], T, 1), 0)} м` : '');
+  const fi = fixAt(T);
+  if (fi !== selFix || lastFixDrawn !== selFix) {
+    selFix = fi;
+    if (!insTimer) insTimer = setTimeout(() => { insTimer = 0; lastFixDrawn = selFix; inspector(); }, 120);
+  }
+}
+function pickFix(i) { if (i != null && i >= 0 && F[i]) setTime(F[i].t + 1e-3, 'pick'); }
+
+// ---------------------------------------------------------------- render
+function sizeMaps() {
+  const w = gdO.clientWidth || 600;
+  let xs = [Infinity, -Infinity], ys = [Infinity, -Infinity];
+  for (const r of D.routes) for (let i = 0; i < r.x.length; i++) { xs = [Math.min(xs[0], r.x[i]), Math.max(xs[1], r.x[i])]; ys = [Math.min(ys[0], r.y[i]), Math.max(ys[1], r.y[i])]; }
+  const asp = isFinite(xs[0]) ? (ys[1] - ys[0]) / Math.max(1, xs[1] - xs[0]) : 0.3;
+  const ho = Math.round(Math.max(170, Math.min(340, (w - 70) * asp * 1.25 + 40)));
+  gdO.style.height = ho + 'px';
+  const wide = window.matchMedia('(min-width: 1100px)').matches;
+  const barH = $('bar').offsetHeight;
+  gdM.style.height = (wide ? Math.max(340, Math.min(760, window.innerHeight - barH - ho - 220)) : 400) + 'px';
+}
+function renderAll() {
+  readColors();
+  sizeMaps();
+  const tf = timeFigure();
+  Plotly.react(gdT, tf.data, tf.layout, CFG);
+  fuseText();
+  const ff = fuseFigure();
+  if (gdT.layout && gdT.layout.xaxis && gdT.layout.xaxis.range && !gdT.layout.xaxis.autorange) ff.layout.xaxis.range = gdT.layout.xaxis.range.slice();
+  Plotly.react(gdF, ff.data, ff.layout, CFG);
+  const mo = mapFigure('o'), mz = mapFigure('z');
+  Plotly.react(gdO, mo.data, mo.layout, Object.assign({}, CFG, { displayModeBar: false }));
+  Plotly.react(gdM, mz.data, mz.layout, CFG);
+  mapLegend();
+  if (A) { ALONG = ALONG || alongData(); const af = alongFigure(); Plotly.react(gdA, af.data, af.layout, CFG); }
+  else gdA.style.height = '40px';
+  lastFixDrawn = -2;
+  setTime(T, 'init');
+}
+function wire() {
+  const sl = $('slider');
+  sl.max = Tend;
+  sl.addEventListener('input', () => setTime(Number(sl.value), 'slider'));
+  for (const gd of [gdT, gdF]) {
+    gd.on('plotly_hover', (ev) => { const p = ev.points && ev.points[0]; if (p && typeof p.x === 'number') setTime(p.x, 'hover'); });
+    gd.on('plotly_click', (ev) => {
+      const p = ev.points && ev.points[0]; if (!p) return;
+      if (typeof p.customdata === 'number' && F[p.customdata]) pickFix(p.customdata); else if (typeof p.x === 'number') setTime(p.x, 'click');
+    });
+  }
+  let syncing = 0;   // the time axes of panel 2 and panels 3-7 zoom together
+  const linkX = (a, b) => a.on('plotly_relayout', (ev) => {
+    if (syncing || !ev) return;
+    let upd = null;
+    for (const k of Object.keys(ev)) {
+      if (/^xaxis\d*\.range\[0\]$/.test(k)) { upd = { 'xaxis.range': [ev[k], ev[k.replace('[0]', '[1]')]] }; break; }
+      if (/^xaxis\d*\.range$/.test(k)) { upd = { 'xaxis.range': ev[k].slice() }; break; }
+      if (/^xaxis\d*\.autorange$/.test(k) && ev[k]) { upd = { 'xaxis.autorange': true }; break; }
+    }
+    if (!upd) return;
+    syncing++;
+    Promise.resolve(Plotly.relayout(b, upd)).finally(() => { syncing--; });
+  });
+  linkX(gdT, gdF); linkX(gdF, gdT);
+  $('fuser').addEventListener('change', () => Plotly.relayout(gdF, fuseY0()));
+  for (const [k, gd] of [['z', gdM], ['o', gdO]]) gd.on('plotly_click', (ev) => {
+    const p = ev.points && ev.points[0]; if (!p || typeof p.customdata !== 'number') return;
+    const id = MAPIDX[k], fixTrace = (id.fp && id.fp.includes(p.curveNumber)) || (id.st && id.st.includes(p.curveNumber));
+    if (fixTrace) pickFix(p.customdata); else setTime(p.customdata, 'map');
+  });
+  if (A) gdA.on('plotly_click', (ev) => { const p = ev.points && ev.points[0]; if (p && typeof p.customdata === 'number' && F[p.customdata]) pickFix(p.customdata); });
+  const redraw = () => { if (!raf) raf = requestAnimationFrame(draw); };
+  gdT.on('plotly_relayout', redraw); gdA.on('plotly_relayout', redraw); gdF.on('plotly_relayout', redraw);
+  gdM.on('plotly_relayout', (ev) => { if (ev && ev['xaxis.range[0]'] !== undefined && !ev['xaxis.range']) $('follow').checked = false; });
+  $('follow').addEventListener('change', redraw);
+  $('errfull').addEventListener('change', () => { if (!hasRef) return; const r = errRange(); Plotly.relayout(gdT, { 'yaxis4.range': [-r, r] }); Plotly.restyle(gdT, { y: [FX.fpT.map(() => -0.97 * r)] }, [FPTICK]); }); $('zoomr').addEventListener('change', () => { $('follow').checked = true; redraw(); });
+  $('smooth').addEventListener('change', () => {
+    if (!A) return;
+    const af = alongFigure(); af.layout.shapes = gdA.layout.shapes; af.layout.xaxis.range = gdA.layout.xaxis.range;
+    Plotly.react(gdA, af.data, af.layout, CFG); inspector();
+  });
+  $('prevfix').addEventListener('click', () => { const k = fpIdx.indexOf(selFix); if (k > 0) pickFix(fpIdx[k - 1]); });
+  $('nextfix').addEventListener('click', () => { const k = fpIdx.indexOf(selFix); if (k >= 0 && k + 1 < fpIdx.length) pickFix(fpIdx[k + 1]); });
+  let playing = false, last = 0;
+  const step = (ts) => {
+    if (!playing) return;
+    const dt = last ? (ts - last) / 1000 : 0; last = ts;
+    setTime(T + dt * Number($('speed').value), 'play');
+    if (T >= Tend) { playing = false; $('play').textContent = '▶'; return; }
+    requestAnimationFrame(step);
+  };
+  $('play').addEventListener('click', () => { playing = !playing; last = 0; $('play').textContent = playing ? '❚❚' : '▶'; if (playing) requestAnimationFrame(step); });
+  const themes = ['auto', 'light', 'dark'], tname = { auto: 'авто', light: 'светлая', dark: 'тёмная' };
+  $('theme').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme || 'auto', nxt = themes[(themes.indexOf(cur) + 1) % 3];
+    if (nxt === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = nxt;
+    $('theme').textContent = 'тема: ' + tname[nxt];
+    renderAll(); inspector();
+  });
+  const setBar = () => document.documentElement.style.setProperty('--bar-h', $('bar').offsetHeight + 'px');
+  let rt = 0;
+  window.addEventListener('resize', () => { setBar(); clearTimeout(rt); rt = setTimeout(() => { sizeMaps(); Plotly.Plots.resize(gdO); Plotly.Plots.resize(gdM); redraw(); }, 150); });
+  setBar();
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', () => { if (!document.documentElement.dataset.theme) { renderAll(); inspector(); } });
+}
+
+if (typeof Plotly === 'undefined') {
+  document.querySelector('.wrap').insertAdjacentHTML('afterbegin', '<p class="err">Не удалось загрузить plotly.js с cdnjs.cloudflare.com — графикам нужен доступ к интернету.</p>');
+  return;
+}
+const th = new URLSearchParams(location.search).get('theme');
+if (th === 'light' || th === 'dark') { document.documentElement.dataset.theme = th; $('theme').textContent = 'тема: ' + (th === 'light' ? 'светлая' : 'тёмная'); }
+header();
+table();
+renderAll();
+wire();
+// start at an instructive fix: the highest ρ among fixes that moved the estimate by |Δ| >= 0.75 m, else the highest ρ
+let pick = -1;
+for (const i of fpIdx) { const j = F[i].job; if (Math.abs(j.delta) >= 0.75 && (pick < 0 || j.rho_best > F[pick].job.rho_best)) pick = i; }
+if (pick < 0) for (const i of fpIdx) if (pick < 0 || F[i].job.rho_best > F[pick].job.rho_best) pick = i;
+if (pick >= 0) pickFix(pick); else inspector();
+})();
+</script>
+</body>
+</html>
